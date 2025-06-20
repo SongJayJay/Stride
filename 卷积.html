@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>卷积过程可视化</title>
+    <style>
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .visualization {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            margin: 40px 0;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        
+        .matrix-container {
+            text-align: center;
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+        }
+        
+        .matrix-container:hover {
+            transform: translateY(-5px);
+        }
+        
+        .matrix-title {
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #2c3e50;
+            font-size: 1.2em;
+        }
+        
+        .matrix {
+            display: inline-grid;
+            gap: 3px;
+            padding: 15px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: inset 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        .input-matrix {
+            grid-template-columns: repeat(5, 1fr);
+        }
+        
+        .kernel-matrix {
+            grid-template-columns: repeat(3, 1fr);
+        }
+        
+        .output-matrix {
+            grid-template-columns: repeat(3, 1fr);
+        }
+        
+        .cell {
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .input-cell {
+            background: #e3f2fd;
+            border: 2px solid #2196f3;
+        }
+        
+        .kernel-cell {
+            background: #fff3e0;
+            border: 2px solid #ff9800;
+        }
+        
+        .output-cell {
+            background: #e8f5e8;
+            border: 2px solid #4caf50;
+        }
+        
+        .highlight {
+            background: #ffeb3b !important;
+            border-color: #fbc02d !important;
+            transform: scale(1.1);
+            box-shadow: 0 0 10px rgba(251, 192, 45, 0.5);
+        }
+        
+        .arrow {
+            font-size: 3em;
+            color: #666;
+            margin: 0 20px;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+        
+        .controls {
+            text-align: center;
+            margin: 30px 0;
+        }
+        
+        .btn {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 0 10px;
+            transition: all 0.3s ease;
+            font-weight: bold;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        
+        .calculation {
+            background: #f0f8ff;
+            padding: 20px;
+            border-radius: 15px;
+            margin: 20px 0;
+            border-left: 5px solid #2196f3;
+            font-family: monospace;
+            font-size: 16px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+        }
+        
+        .explanation {
+            background: #fff9c4;
+            padding: 20px;
+            border-radius: 15px;
+            margin: 20px 0;
+            border-left: 5px solid #ffc107;
+            line-height: 1.6;
+        }
+        
+        .step-indicator {
+            text-align: center;
+            margin: 20px 0;
+            padding: 15px;
+            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+            color: white;
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        
+        @media (max-width: 768px) {
+            .visualization {
+                flex-direction: column;
+            }
+            .arrow {
+                transform: rotate(90deg);
+                margin: 10px 0;
+            }
+            .matrix-container {
+                margin: 10px 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧠 深度学习卷积过程可视化</h1>
+        
+        <div class="explanation">
+            <h3>📚 卷积操作原理：</h3>
+            <p><strong>卷积</strong>是深度学习中的核心操作，通过卷积核（滤波器）在输入数据上滑动，计算每个位置的加权和。这个过程能够提取输入数据的特征，如边缘、纹理等。</p>
+            <p><strong>步骤：</strong></p>
+            <ol>
+                <li>将卷积核放置在输入矩阵的某个位置</li>
+                <li>对应位置的元素相乘</li>
+                <li>将所有乘积求和得到输出值</li>
+                <li>滑动卷积核到下一个位置，重复以上步骤</li>
+            </ol>
+        </div>
+        
+        <div class="step-indicator" id="stepIndicator">
+            点击"开始演示"按钮开始卷积过程
+        </div>
+        
+        <div class="visualization">
+            <div class="matrix-container">
+                <div class="matrix-title">输入矩阵 (5×5)</div>
+                <div class="matrix input-matrix" id="inputMatrix"></div>
+            </div>
+            
+            <div class="arrow">⊗</div>
+            
+            <div class="matrix-container">
+                <div class="matrix-title">卷积核 (3×3)</div>
+                <div class="matrix kernel-matrix" id="kernelMatrix"></div>
+            </div>
+            
+            <div class="arrow">→</div>
+            
+            <div class="matrix-container">
+                <div class="matrix-title">输出特征图 (3×3)</div>
+                <div class="matrix output-matrix" id="outputMatrix"></div>
+            </div>
+        </div>
+        
+        <div class="calculation" id="calculation">
+            等待开始计算...
+        </div>
+        
+        <div class="controls">
+            <button class="btn" onclick="startDemo()">🎬 开始演示</button>
+            <button class="btn" onclick="stepDemo()">👆 单步执行</button>
+            <button class="btn" onclick="resetDemo()">🔄 重置</button>
+            <button class="btn" onclick="randomizeInput()">🎲 随机输入</button>
+        </div>
+        
+        <div class="explanation">
+            <h3>🔍 关键概念解释：</h3>
+            <p><strong>卷积核（Kernel/Filter）：</strong>小的矩阵，用于检测输入中的特定特征。不同的卷积核可以检测不同的特征，如边缘、角点等。</p>
+            <p><strong>步长（Stride）：</strong>卷积核每次移动的距离。本例中步长为1。</p>
+            <p><strong>填充（Padding）：</strong>在输入边缘添加零值，用于控制输出大小。本例中没有使用填充。</p>
+            <p><strong>特征图（Feature Map）：</strong>卷积操作的输出，包含了提取的特征信息。</p>
+        </div>
+    </div>
+
+    <script>
+        // 初始化数据
+        let inputData = [
+            [1, 2, 3, 0, 1],
+            [4, 5, 6, 1, 2],
+            [7, 8, 9, 2, 3],
+            [1, 2, 3, 4, 5],
+            [0, 1, 2, 3, 4]
+        ];
+        
+        let kernelData = [
+            [1, 0, -1],
+            [2, 0, -2],
+            [1, 0, -1]
+        ];
+        
+        let outputData = [[0, 0, 0], [0, 0, 0], [0, 0, 0]];
+        let currentStep = 0;
+        let isAnimating = false;
+        
+        // 初始化矩阵显示
+        function initializeMatrices() {
+            createMatrix('inputMatrix', inputData, 'input-cell');
+            createMatrix('kernelMatrix', kernelData, 'kernel-cell');
+            createMatrix('outputMatrix', outputData, 'output-cell');
+        }
+        
+        function createMatrix(containerId, data, cellClass) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = '';
+            
+            for (let i = 0; i < data.length; i++) {
+                for (let j = 0; j < data[i].length; j++) {
+                    const cell = document.createElement('div');
+                    cell.className = `cell ${cellClass}`;
+                    cell.textContent = data[i][j];
+                    cell.id = `${containerId}_${i}_${j}`;
+                    container.appendChild(cell);
+                }
+            }
+        }
+        
+        // 计算卷积
+        function calculateConvolution(row, col) {
+            let sum = 0;
+            let calculation = '计算过程：\n';
+            
+            for (let i = 0; i < 3; i++) {
+                for (let j = 0; j < 3; j++) {
+                    const inputVal = inputData[row + i][col + j];
+                    const kernelVal = kernelData[i][j];
+                    const product = inputVal * kernelVal;
+                    sum += product;
+                    
+                    if (i === 0 && j === 0) {
+                        calculation += `${inputVal} × ${kernelVal}`;
+                    } else {
+                        calculation += ` + ${inputVal} × ${kernelVal}`;
+                    }
+                }
+            }
+            
+            calculation += ` = ${sum}`;
+            outputData[row][col] = sum;
+            
+            return calculation;
+        }
+        
+        // 清除高亮
+        function clearHighlights() {
+            document.querySelectorAll('.cell').forEach(cell => {
+                cell.classList.remove('highlight');
+            });
+        }
+        
+        // 高亮当前计算区域
+        function highlightCurrentRegion(row, col) {
+            clearHighlights();
+            
+            // 高亮输入区域
+            for (let i = 0; i < 3; i++) {
+                for (let j = 0; j < 3; j++) {
+                    const cell = document.getElementById(`inputMatrix_${row + i}_${col + j}`);
+                    if (cell) cell.classList.add('highlight');
+                }
+            }
+            
+            // 高亮卷积核
+            for (let i = 0; i < 3; i++) {
+                for (let j = 0; j < 3; j++) {
+                    const cell = document.getElementById(`kernelMatrix_${i}_${j}`);
+                    if (cell) cell.classList.add('highlight');
+                }
+            }
+            
+            // 高亮输出位置
+            const outputCell = document.getElementById(`outputMatrix_${row}_${col}`);
+            if (outputCell) outputCell.classList.add('highlight');
+        }
+        
+        // 更新步骤指示器
+        function updateStepIndicator(step) {
+            const indicator = document.getElementById('stepIndicator');
+            const positions = [
+                '位置 (0,0) - 左上角',
+                '位置 (0,1) - 上中',
+                '位置 (0,2) - 右上角',
+                '位置 (1,0) - 中左',
+                '位置 (1,1) - 中心',
+                '位置 (1,2) - 中右',
+                '位置 (2,0) - 左下角',
+                '位置 (2,1) - 下中',
+                '位置 (2,2) - 右下角'
+            ];
+            
+            if (step < positions.length) {
+                indicator.textContent = `步骤 ${step + 1}/9: 计算输出${positions[step]}`;
+            } else {
+                indicator.textContent = '✅ 卷积计算完成！';
+            }
+        }
+        
+        // 开始演示
+        async function startDemo() {
+            if (isAnimating) return;
+            
+            isAnimating = true;
+            currentStep = 0;
+            
+            // 重置输出
+            outputData = [[0, 0, 0], [0, 0, 0], [0, 0, 0]];
+            createMatrix('outputMatrix', outputData, 'output-cell');
+            
+            for (let i = 0; i < 3; i++) {
+                for (let j = 0; j < 3; j++) {
+                    highlightCurrentRegion(i, j);
+                    updateStepIndicator(currentStep);
+                    
+                    const calculation = calculateConvolution(i, j);
+                    document.getElementById('calculation').textContent = calculation;
+                    
+                    // 更新输出显示
+                    const outputCell = document.getElementById(`outputMatrix_${i}_${j}`);
+                    outputCell.textContent = outputData[i][j];
+                    outputCell.style.background = '#4caf50';
+                    outputCell.style.color = 'white';
+                    
+                    currentStep++;
+                    await new Promise(resolve => setTimeout(resolve, 1500));
+                }
+            }
+            
+            clearHighlights();
+            updateStepIndicator(currentStep);
+            isAnimating = false;
+        }
+        
+        // 单步执行
+        function stepDemo() {
+            if (isAnimating) return;
+            
+            if (currentStep === 0) {
+                outputData = [[0, 0, 0], [0, 0, 0], [0, 0, 0]];
+                createMatrix('outputMatrix', outputData, 'output-cell');
+            }
+            
+            if (currentStep < 9) {
+                const row = Math.floor(currentStep / 3);
+                const col = currentStep % 3;
+                
+                highlightCurrentRegion(row, col);
+                updateStepIndicator(currentStep);
+                
+                const calculation = calculateConvolution(row, col);
+                document.getElementById('calculation').textContent = calculation;
+                
+                const outputCell = document.getElementById(`outputMatrix_${row}_${col}`);
+                outputCell.textContent = outputData[row][col];
+                outputCell.style.background = '#4caf50';
+                outputCell.style.color = 'white';
+                
+                currentStep++;
+            } else {
+                clearHighlights();
+                updateStepIndicator(currentStep);
+            }
+        }
+        
+        // 重置演示
+        function resetDemo() {
+            isAnimating = false;
+            currentStep = 0;
+            outputData = [[0, 0, 0], [0, 0, 0], [0, 0, 0]];
+            clearHighlights();
+            initializeMatrices();
+            document.getElementById('calculation').textContent = '等待开始计算...';
+            document.getElementById('stepIndicator').textContent = '点击"开始演示"按钮开始卷积过程';
+        }
+        
+        // 随机化输入
+        function randomizeInput() {
+            if (isAnimating) return;
+            
+            for (let i = 0; i < 5; i++) {
+                for (let j = 0; j < 5; j++) {
+                    inputData[i][j] = Math.floor(Math.random() * 10);
+                }
+            }
+            resetDemo();
+        }
+        
+        // 页面加载时初始化
+        window.onload = function() {
+            initializeMatrices();
+        };
+    </script>
+</body>
+</html>
