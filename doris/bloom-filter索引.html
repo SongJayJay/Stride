@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bloom Filter索引生动演示</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .concept-intro {
+            background: linear-gradient(135deg, #e3f2fd, #f3e5f5);
+            border: 3px solid #2196F3;
+            padding: 25px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+        }
+        
+        .concept-intro h2 {
+            color: #1976D2;
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 1.8em;
+        }
+        
+        .analogy {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            border-left: 5px solid #28a745;
+        }
+        
+        .bloom-filter {
+            background: linear-gradient(135deg, #fff3e0, #fce4ec);
+            border: 3px solid #FF9800;
+            padding: 25px;
+            border-radius: 15px;
+            margin: 30px 0;
+        }
+        
+        .bit-array {
+            display: flex;
+            justify-content: center;
+            margin: 20px 0;
+            flex-wrap: wrap;
+            gap: 5px;
+        }
+        
+        .bit {
+            width: 40px;
+            height: 40px;
+            border: 2px solid #333;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.2em;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .bit-0 {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .bit-1 {
+            background: #d4edda;
+            color: #155724;
+            box-shadow: 0 0 10px rgba(40, 167, 69, 0.5);
+        }
+        
+        .bit-index {
+            font-size: 0.7em;
+            color: #666;
+            text-align: center;
+            margin-top: 5px;
+        }
+        
+        .hash-demo {
+            background: linear-gradient(135deg, #e8f5e8, #f0f8f0);
+            border: 3px solid #4CAF50;
+            padding: 25px;
+            border-radius: 15px;
+            margin: 30px 0;
+        }
+        
+        .hash-function {
+            background: #2196F3;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            display: inline-block;
+            margin: 5px;
+            font-weight: bold;
+        }
+        
+        .arrow {
+            font-size: 2em;
+            color: #FF9800;
+            text-align: center;
+            margin: 10px 0;
+        }
+        
+        .demo-section {
+            margin: 30px 0;
+            padding: 20px;
+            border-radius: 10px;
+            border: 2px solid #ddd;
+        }
+        
+        .insert-demo {
+            background: linear-gradient(135deg, #e8f5e8, #f0f8f0);
+            border-color: #4CAF50;
+        }
+        
+        .query-demo {
+            background: linear-gradient(135deg, #e3f2fd, #f3e5f5);
+            border-color: #2196F3;
+        }
+        
+        .false-positive-demo {
+            background: linear-gradient(135deg, #fff3e0, #fce4ec);
+            border-color: #FF9800;
+        }
+        
+        .step {
+            margin: 15px 0;
+            padding: 15px;
+            background: rgba(255,255,255,0.8);
+            border-radius: 8px;
+            border-left: 4px solid #007bff;
+        }
+        
+        .highlight {
+            background: #ffeb3b !important;
+            animation: pulse 1s ease-in-out;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+        
+        .controls {
+            text-align: center;
+            margin: 20px 0;
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            margin: 5px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        
+        .comparison-table th,
+        .comparison-table td {
+            padding: 12px;
+            text-align: center;
+            border: 1px solid #ddd;
+        }
+        
+        .comparison-table th {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            font-weight: bold;
+        }
+        
+        .comparison-table tr:nth-child(even) {
+            background: rgba(102, 126, 234, 0.1);
+        }
+        
+        .emoji {
+            font-size: 1.5em;
+            margin: 0 5px;
+        }
+        
+        .result-positive {
+            background: #d4edda;
+            color: #155724;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            border-left: 4px solid #28a745;
+        }
+        
+        .result-negative {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            border-left: 4px solid #dc3545;
+        }
+        
+        .result-maybe {
+            background: #fff3cd;
+            color: #856404;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            border-left: 4px solid #ffc107;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🌸 Bloom Filter 索引生动演示</h1>
+        
+        <!-- 概念介绍 -->
+        <div class="concept-intro">
+            <h2>🤔 什么是Bloom Filter？</h2>
+            <div class="analogy">
+                <h3>🏰 生活比喻：夜店门卫的黑名单</h3>
+                <p><strong>想象你是夜店门卫，手里有一个"可能是VIP"的快速检查表：</strong></p>
+                <ul>
+                    <li>📋 <strong>不在表上</strong> → 100%确定不是VIP，直接拒绝</li>
+                    <li>✅ <strong>在表上</strong> → 可能是VIP，需要进一步核实身份证</li>
+                    <li>⚠️ <strong>注意</strong>：表上的人不一定都是真VIP（可能有误判）</li>
+                </ul>
+                <p><em>这就是Bloom Filter的核心思想：快速排除99%不可能的情况！</em></p>
+            </div>
+        </div>
+        
+        <!-- Bloom Filter结构 -->
+        <div class="bloom-filter">
+            <h3 style="color: #E65100; text-align: center;">🎯 Bloom Filter 结构演示</h3>
+            <p style="text-align: center;">位数组 (Bit Array) - 每个位置初始为0</p>
+            
+            <div class="bit-array" id="bitArray">
+                <!-- 将通过JavaScript动态生成 -->
+            </div>
+            
+            <div style="text-align: center; margin-top: 20px;">
+                <div style="display: inline-block; margin: 0 20px;">
+                    <div class="bit bit-0" style="display: inline-flex;">0</div>
+                    <span style="margin-left: 10px;">未设置的位</span>
+                </div>
+                <div style="display: inline-block; margin: 0 20px;">
+                    <div class="bit bit-1" style="display: inline-flex;">1</div>
+                    <span style="margin-left: 10px;">已设置的位</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 哈希函数演示 -->
+        <div class="hash-demo">
+            <h3 style="color: #2E7D32; text-align: center;">🔧 哈希函数工作原理</h3>
+            <div style="text-align: center;">
+                <div style="margin: 20px 0;">
+                    <div style="display: inline-block; background: #2196F3; color: white; padding: 15px 30px; border-radius: 10px; font-size: 1.2em; font-weight: bold;">
+                        输入: "user_12345"
+                    </div>
+                </div>
+                
+                <div class="arrow">⬇️</div>
+                
+                <div style="margin: 20px 0;">
+                    <div class="hash-function">Hash1(x) = x % 16</div>
+                    <div class="hash-function">Hash2(x) = (x * 7) % 16</div>
+                    <div class="hash-function">Hash3(x) = (x * 13) % 16</div>
+                </div>
+                
+                <div class="arrow">⬇️</div>
+                
+                <div style="margin: 20px 0;">
+                    <div style="display: inline-block; background: #4CAF50; color: white; padding: 15px 30px; border-radius: 10px; font-size: 1.2em; font-weight: bold;">
+                        位置: 3, 7, 11
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 交互式演示 -->
+        <div class="demo-section insert-demo">
+            <h3 style="color: #2E7D32;">📥 插入元素演示</h3>
+            <div class="controls">
+                <button class="btn" onclick="insertElement('user_001')">插入 user_001</button>
+                <button class="btn" onclick="insertElement('user_999')">插入 user_999</button>
+                <button class="btn" onclick="insertElement('admin_123')">插入 admin_123</button>
+                <button class="btn" onclick="resetFilter()">重置过滤器</button>
+            </div>
+            <div id="insertSteps"></div>
+        </div>
+        
+        <div class="demo-section query-demo">
+            <h3 style="color: #1976D2;">🔍 查询元素演示</h3>
+            <div class="controls">
+                <button class="btn" onclick="queryElement('user_001')">查询 user_001</button>
+                <button class="btn" onclick="queryElement('guest_789')">查询 guest_789</button>
+                <button class="btn" onclick="queryElement('user_999')">查询 user_999</button>
+            </div>
+            <div id="querySteps"></div>
+        </div>
+        
+        <!-- 误判演示 -->
+        <div class="demo-section false-positive-demo">
+            <h3 style="color: #E65100;">⚠️ 误判现象演示</h3>
+            <div class="analogy">
+                <p><strong>🎭 为什么会有误判？</strong></p>
+                <p>就像夜店门卫的例子：</p>
+                <ul>
+                    <li>真VIP张三设置了位置 3, 7, 11</li>
+                    <li>真VIP李四设置了位置 2, 7, 15</li>
+                    <li>普通人王五计算出位置 3, 7, 15</li>
+                    <li>结果：王五的所有位置都被设置了！门卫会以为他"可能是VIP"</li>
+                </ul>
+            </div>
+            <div class="controls">
+                <button class="btn" onclick="demonstrateFalsePositive()">演示误判情况</button>
+            </div>
+            <div id="falsePositiveDemo"></div>
+        </div>
+        
+        <!-- 性能对比 -->
+        <div style="background: linear-gradient(135deg, #fff9c4, #fff59d); border: 3px solid #FFC107; padding: 25px; border-radius: 15px; margin: 30px 0;">
+            <h3 style="color: #F57C00; text-align: center;">⚡ 性能对比：Bloom Filter vs 传统方法</h3>
+            <table class="comparison-table">
+                <thead>
+                    <tr>
+                        <th>对比项目</th>
+                        <th>传统哈希表</th>
+                        <th>Bloom Filter</th>
+                        <th>优势</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>空间复杂度</strong></td>
+                        <td>O(n) - 存储所有元素</td>
+                        <td>O(1) - 固定大小位数组</td>
+                        <td>Bloom Filter 胜 <span class="emoji">🏆</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>查询速度</strong></td>
+                        <td>O(1) - 但常数较大</td>
+                        <td>O(k) - k个哈希函数</td>
+                        <td>基本相当 <span class="emoji">⚖️</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>准确性</strong></td>
+                        <td>100% 准确</td>
+                        <td>无假阴性，有假阳性</td>
+                        <td>传统方法胜 <span class="emoji">🎯</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>内存使用</strong></td>
+                        <td>1GB (百万用户)</td>
+                        <td>1MB (相同误判率)</td>
+                        <td>Bloom Filter 胜 <span class="emoji">💾</span></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Doris应用场景 -->
+        <div style="background: linear-gradient(135deg, #e8f5e8, #f0f8f0); border: 3px solid #4CAF50; padding: 25px; border-radius: 15px;">
+            <h3 style="color: #2E7D32; text-align: center;">🚀 Apache Doris 中的应用</h3>
+            
+            <div class="step">
+                <h4>1. 🗂️ 数据跳过优化</h4>
+                <p><strong>场景</strong>：查询特定用户ID的数据</p>
+                <code>SELECT * FROM user_logs WHERE user_id = 'user_12345'</code>
+                <p><strong>优化</strong>：Bloom Filter快速跳过99%不包含该用户的数据块</p>
+            </div>
+            
+            <div class="step">
+                <h4>2. 🔗 Join操作优化</h4>
+                <p><strong>场景</strong>：大表Join小表</p>
+                <code>SELECT * FROM big_table b JOIN small_table s ON b.id = s.id</code>
+                <p><strong>优化</strong>：为小表建立Bloom Filter，提前过滤大表中不匹配的行</p>
+            </div>
+            
+            <div class="step">
+                <h4>3. 📦 分区剪枝</h4>
+                <p><strong>场景</strong>：按日期分区的表查询特定订单</p>
+                <code>SELECT * FROM orders WHERE order_id = 'ORDER_789'</code>
+                <p><strong>优化</strong>：快速确定哪些分区可能包含该订单</p>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // 初始化位数组
+        const ARRAY_SIZE = 16;
+        let bitArray = new Array(ARRAY_SIZE).fill(0);
+        
+        // 简单哈希函数
+        function hash1(str) {
+            let hash = 0;
+            for (let i = 0; i < str.length; i++) {
+                hash += str.charCodeAt(i);
+            }
+            return hash % ARRAY_SIZE;
+        }
+        
+        function hash2(str) {
+            let hash = 0;
+            for (let i = 0; i < str.length; i++) {
+                hash += str.charCodeAt(i) * 7;
+            }
+            return hash % ARRAY_SIZE;
+        }
+        
+        function hash3(str) {
+            let hash = 0;
+            for (let i = 0; i < str.length; i++) {
+                hash += str.charCodeAt(i) * 13;
+            }
+            return hash % ARRAY_SIZE;
+        }
+        
+        // 渲染位数组
+        function renderBitArray() {
+            const container = document.getElementById('bitArray');
+            container.innerHTML = '';
+            
+            for (let i = 0; i < ARRAY_SIZE; i++) {
+                const bitDiv = document.createElement('div');
+                bitDiv.className = `bit ${bitArray[i] ? 'bit-1' : 'bit-0'}`;
+                bitDiv.textContent = bitArray[i];
+                bitDiv.title = `位置 ${i}: ${bitArray[i] ? '已设置' : '未设置'}`;
+                
+                const indexDiv = document.createElement('div');
+                indexDiv.className = 'bit-index';
+                indexDiv.textContent = i;
+                
+                const wrapper = document.createElement('div');
+                wrapper.style.textAlign = 'center';
+                wrapper.appendChild(bitDiv);
+                wrapper.appendChild(indexDiv);
+                
+                container.appendChild(wrapper);
+            }
+        }
+        
+        // 高亮显示位置
+        function highlightPositions(positions, duration = 2000) {
+            positions.forEach(pos => {
+                const bitElements = document.querySelectorAll('.bit');
+                if (bitElements[pos]) {
+                    bitElements[pos].classList.add('highlight');
+                    setTimeout(() => {
+                        bitElements[pos].classList.remove('highlight');
+                    }, duration);
+                }
+            });
+        }
+        
+        // 插入元素
+        function insertElement(element) {
+            const pos1 = hash1(element);
+            const pos2 = hash2(element);
+            const pos3 = hash3(element);
+            
+            bitArray[pos1] = 1;
+            bitArray[pos2] = 1;
+            bitArray[pos3] = 1;
+            
+            renderBitArray();
+            highlightPositions([pos1, pos2, pos3]);
+            
+            const stepsDiv = document.getElementById('insertSteps');
+            stepsDiv.innerHTML = `
+                <div class="step">
+                    <h4>插入 "${element}"</h4>
+                    <p><strong>哈希计算：</strong></p>
+                    <ul>
+                        <li>Hash1("${element}") = ${pos1}</li>
+                        <li>Hash2("${element}") = ${pos2}</li>
+                        <li>Hash3("${element}") = ${pos3}</li>
+                    </ul>
+                    <p><strong>操作：</strong>将位置 ${pos1}, ${pos2}, ${pos3} 设置为 1</p>
+                </div>
+            `;
+        }
+        
+        // 查询元素
+        function queryElement(element) {
+            const pos1 = hash1(element);
+            const pos2 = hash2(element);
+            const pos3 = hash3(element);
+            
+            const exists1 = bitArray[pos1] === 1;
+            const exists2 = bitArray[pos2] === 1;
+            const exists3 = bitArray[pos3] === 1;
+            
+            const allExist = exists1 && exists2 && exists3;
+            
+            highlightPositions([pos1, pos2, pos3]);
+            
+            const stepsDiv = document.getElementById('querySteps');
+            let resultHtml = '';
+            
+            if (allExist) {
+                resultHtml = `<div class="result-maybe">
+                    <strong>🤔 可能存在</strong> - 需要进一步验证！
+                </div>`;
+            } else {
+                resultHtml = `<div class="result-negative">
+                    <strong>❌ 绝对不存在</strong> - 可以直接跳过！
+                </div>`;
+            }
+            
+            stepsDiv.innerHTML = `
+                <div class="step">
+                    <h4>查询 "${element}"</h4>
+                    <p><strong>哈希计算：</strong></p>
+                    <ul>
+                        <li>Hash1("${element}") = ${pos1} → ${bitArray[pos1] ? '✅' : '❌'}</li>
+                        <li>Hash2("${element}") = ${pos2} → ${bitArray[pos2] ? '✅' : '❌'}</li>
+                        <li>Hash3("${element}") = ${pos3} → ${bitArray[pos3] ? '✅' : '❌'}</li>
+                    </ul>
+                    ${resultHtml}
+                </div>
+            `;
+        }
+        
+        // 演示误判
+        function demonstrateFalsePositive() {
+            // 重置并插入一些元素
+            resetFilter();
+            insertElement('user_001');  // 假设设置位置 1, 8, 13
+            insertElement('admin_999'); // 假设设置位置 3, 8, 15
+            
+            setTimeout(() => {
+                const demoDiv = document.getElementById('falsePositiveDemo');
+                demoDiv.innerHTML = `
+                    <div class="step">
+                        <h4>🎭 误判演示</h4>
+                        <p><strong>已插入元素：</strong> user_001, admin_999</p>
+                        <p><strong>现在查询从未插入的元素：</strong></p>
+                        <div style="margin: 10px 0;">
+                            <button class="btn" onclick="queryElement('guest_777')" style="background: #ff9800;">
+                                查询 guest_777 (可能误判)
+                            </button>
+                        </div>
+                        <p><em>如果 guest_777 的哈希值恰好落在已设置的位置上，就会产生误判！</em></p>
+                    </div>
+                `;
+            }, 1000);
+        }
+        
+        // 重置过滤器
+        function resetFilter() {
+            bitArray = new Array(ARRAY_SIZE).fill(0);
+            renderBitArray();
+            document.getElementById('insertSteps').innerHTML = '';
+            document.getElementById('querySteps').innerHTML = '';
+            document.getElementById('falsePositiveDemo').innerHTML = '';
+        }
+        
+        // 初始化页面
+        renderBitArray();
+    </script>
+</body>
+</html>

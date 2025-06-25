@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Min/Max索引：数据块大小对比</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .scenario {
+            margin-bottom: 50px;
+            padding: 25px;
+            border-radius: 10px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .scenario::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+        }
+        
+        .small-blocks {
+            background: linear-gradient(135deg, #e8f5e8, #f0f8f0);
+            border: 2px solid #4CAF50;
+        }
+        
+        .large-blocks {
+            background: linear-gradient(135deg, #fff3e0, #fce4ec);
+            border: 2px solid #FF9800;
+        }
+        
+        .scenario-title {
+            font-size: 1.8em;
+            font-weight: bold;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .small-blocks .scenario-title {
+            color: #2E7D32;
+        }
+        
+        .large-blocks .scenario-title {
+            color: #E65100;
+        }
+        
+        .data-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+            padding: 10px;
+            background: rgba(255,255,255,0.7);
+            border-radius: 8px;
+            position: relative;
+        }
+        
+        .data-block {
+            margin: 5px;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 0.9em;
+            font-weight: bold;
+            text-align: center;
+            min-width: 60px;
+            position: relative;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .data-block:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        
+        .small-block {
+            background: linear-gradient(135deg, #81C784, #66BB6A);
+            color: white;
+            border: 2px solid #4CAF50;
+        }
+        
+        .large-block {
+            background: linear-gradient(135deg, #FFB74D, #FFA726);
+            color: white;
+            border: 2px solid #FF9800;
+            padding: 8px 20px;
+        }
+        
+        .metadata {
+            background: #f8f9fa;
+            border: 2px dashed #6c757d;
+            color: #495057;
+            font-size: 0.8em;
+            padding: 4px 8px;
+            margin: 2px;
+        }
+        
+        .query-demo {
+            background: linear-gradient(135deg, #e3f2fd, #f3e5f5);
+            border: 3px solid #2196F3;
+            margin: 30px 0;
+            padding: 20px;
+            border-radius: 12px;
+        }
+        
+        .query-title {
+            font-size: 1.5em;
+            color: #1976D2;
+            margin-bottom: 15px;
+            text-align: center;
+            font-weight: bold;
+        }
+        
+        .query-condition {
+            background: #2196F3;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            display: inline-block;
+            margin-bottom: 15px;
+            font-weight: bold;
+        }
+        
+        .result {
+            display: flex;
+            align-items: center;
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 8px;
+        }
+        
+        .hit {
+            background: linear-gradient(135deg, #c8e6c9, #a5d6a7);
+            border-left: 4px solid #4CAF50;
+        }
+        
+        .skip {
+            background: linear-gradient(135deg, #ffcdd2, #f8bbd9);
+            border-left: 4px solid #f44336;
+            opacity: 0.6;
+        }
+        
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+        
+        .stat-item {
+            text-align: center;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            min-width: 120px;
+        }
+        
+        .stat-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #2196F3;
+        }
+        
+        .stat-label {
+            font-size: 0.9em;
+            color: #666;
+            margin-top: 5px;
+        }
+        
+        .comparison {
+            background: linear-gradient(135deg, #fff9c4, #fff59d);
+            border: 3px solid #FFC107;
+            padding: 25px;
+            border-radius: 15px;
+            margin: 30px 0;
+        }
+        
+        .comparison h3 {
+            color: #F57C00;
+            text-align: center;
+            font-size: 1.8em;
+            margin-bottom: 20px;
+        }
+        
+        .vs-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        
+        .vs-table th,
+        .vs-table td {
+            padding: 12px;
+            text-align: center;
+            border: 1px solid #ddd;
+        }
+        
+        .vs-table th {
+            background: linear-gradient(135deg, #FFC107, #FFB300);
+            color: white;
+            font-weight: bold;
+        }
+        
+        .vs-table tr:nth-child(even) {
+            background: rgba(255,193,7,0.1);
+        }
+        
+        .emoji {
+            font-size: 1.5em;
+            margin: 0 5px;
+        }
+        
+        .animated {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📊 Min/Max索引：数据块大小对比</h1>
+        
+        <!-- 原始数据展示 -->
+        <div style="background: #f0f8ff; padding: 20px; border-radius: 10px; margin-bottom: 30px; border: 2px solid #4682b4;">
+            <h3 style="color: #4682b4; text-align: center;">🗂️ 原始数据：1000条订单记录（按订单ID排序）</h3>
+            <div style="text-align: center; font-family: monospace; font-size: 0.9em; color: #666;">
+                ID: 1001→1010, 1011→1020, 1021→1030, ..., 1991→2000
+            </div>
+        </div>
+        
+        <!-- 小数据块场景 -->
+        <div class="scenario small-blocks">
+            <div class="scenario-title">🔸 小数据块策略 (每块100条记录)</div>
+            
+            <div class="data-row">
+                <strong>数据块:</strong>
+                <div class="data-block small-block" title="块1: ID 1001-1100">块1<br>[1001,1100]</div>
+                <div class="data-block small-block" title="块2: ID 1101-1200">块2<br>[1101,1200]</div>
+                <div class="data-block small-block" title="块3: ID 1201-1300">块3<br>[1201,1300]</div>
+                <div class="data-block small-block" title="块4: ID 1301-1400">块4<br>[1301,1400]</div>
+                <div class="data-block small-block" title="块5: ID 1401-1500">块5<br>[1401,1500]</div>
+                <span style="margin-left: 10px; color: #666;">... 共10个块</span>
+            </div>
+            
+            <div class="data-row">
+                <strong>元数据:</strong>
+                <div class="metadata">Min/Max-1</div>
+                <div class="metadata">Min/Max-2</div>
+                <div class="metadata">Min/Max-3</div>
+                <div class="metadata">Min/Max-4</div>
+                <div class="metadata">Min/Max-5</div>
+                <span style="margin-left: 10px; color: #666;">... 共10组元数据</span>
+            </div>
+        </div>
+        
+        <!-- 大数据块场景 -->
+        <div class="scenario large-blocks">
+            <div class="scenario-title">🔸 大数据块策略 (每块500条记录)</div>
+            
+            <div class="data-row">
+                <strong>数据块:</strong>
+                <div class="data-block large-block" title="块A: ID 1001-1500">块A<br>[1001,1500]</div>
+                <div class="data-block large-block" title="块B: ID 1501-2000">块B<br>[1501,2000]</div>
+                <span style="margin-left: 10px; color: #666;">共2个块</span>
+            </div>
+            
+            <div class="data-row">
+                <strong>元数据:</strong>
+                <div class="metadata">Min/Max-A</div>
+                <div class="metadata">Min/Max-B</div>
+                <span style="margin-left: 10px; color: #666;">共2组元数据</span>
+            </div>
+        </div>
+        
+        <!-- 查询演示 -->
+        <div class="query-demo">
+            <div class="query-title">🔍 查询演示</div>
+            <div class="query-condition">SELECT * FROM orders WHERE order_id BETWEEN 1250 AND 1350</div>
+            
+            <div style="display: flex; justify-content: space-between;">
+                <!-- 小块查询结果 -->
+                <div style="flex: 1; margin-right: 20px;">
+                    <h4 style="color: #2E7D32; text-align: center;">小数据块查询过程</h4>
+                    <div class="result skip">❌ 块1 [1001,1100] - 范围不重叠，跳过</div>
+                    <div class="result skip">❌ 块2 [1101,1200] - 范围不重叠，跳过</div>
+                    <div class="result hit animated">✅ 块3 [1201,1300] - 范围重叠，扫描！</div>
+                    <div class="result hit animated">✅ 块4 [1301,1400] - 范围重叠，扫描！</div>
+                    <div class="result skip">❌ 块5 [1401,1500] - 范围不重叠，跳过</div>
+                    <div class="result skip">❌ 其他块 - 全部跳过</div>
+                </div>
+                
+                <!-- 大块查询结果 -->
+                <div style="flex: 1; margin-left: 20px;">
+                    <h4 style="color: #E65100; text-align: center;">大数据块查询过程</h4>
+                    <div class="result hit animated">✅ 块A [1001,1500] - 范围重叠，扫描！</div>
+                    <div class="result hit animated">✅ 块B [1501,2000] - 范围重叠，扫描！</div>
+                    <div style="color: #666; font-style: italic; text-align: center; margin-top: 20px;">
+                        注意：虽然块B的大部分数据不匹配，<br>但仍需要扫描整个块！
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 性能对比 -->
+        <div class="comparison">
+            <h3>⚡ 性能对比分析</h3>
+            <table class="vs-table">
+                <thead>
+                    <tr>
+                        <th>对比项目</th>
+                        <th>小数据块 (100条/块)</th>
+                        <th>大数据块 (500条/块)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>数据块总数</strong></td>
+                        <td>10个块</td>
+                        <td>2个块</td>
+                    </tr>
+                    <tr>
+                        <td><strong>元数据数量</strong></td>
+                        <td>10组 Min/Max <span class="emoji">📊</span></td>
+                        <td>2组 Min/Max <span class="emoji">📊</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>需要扫描的块</strong></td>
+                        <td>2个块 (20%)</td>
+                        <td>2个块 (100%)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>实际扫描数据量</strong></td>
+                        <td>200条记录</td>
+                        <td>1000条记录</td>
+                    </tr>
+                    <tr>
+                        <td><strong>过滤精度</strong></td>
+                        <td>高精度 <span class="emoji">🎯</span></td>
+                        <td>低精度 <span class="emoji">🎲</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>存储开销</strong></td>
+                        <td>元数据多 <span class="emoji">📦</span></td>
+                        <td>元数据少 <span class="emoji">📦</span></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- 总结 -->
+        <div style="background: linear-gradient(135deg, #e8f5e8, #f0f8f0); padding: 25px; border-radius: 15px; border: 3px solid #4CAF50;">
+            <h3 style="color: #2E7D32; text-align: center;">💡 核心理解</h3>
+            <div style="display: flex; justify-content: space-between; margin-top: 20px;">
+                <div style="flex: 1; text-align: center; padding: 15px;">
+                    <div style="font-size: 3em;">🎯</div>
+                    <strong>小块 = 精确制导</strong><br>
+                    <span style="color: #666;">范围小，过滤准确<br>但需要更多"标签纸"</span>
+                </div>
+                <div style="flex: 1; text-align: center; padding: 15px;">
+                    <div style="font-size: 3em;">🎲</div>
+                    <strong>大块 = 粗放扫描</strong><br>
+                    <span style="color: #666;">范围大，容易误判<br>但"标签纸"更少</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 实际建议 -->
+        <div style="background: #f8f9fa; padding: 20px; border-radius: 10px; margin-top: 20px; border-left: 5px solid #2196F3;">
+            <h4 style="color: #1976D2;">🚀 实际应用建议</h4>
+            <p><strong>Doris默认配置已经平衡了这个矛盾：</strong></p>
+            <ul style="color: #666;">
+                <li>自动选择合适的数据块大小（通常几十MB）</li>
+                <li>根据数据特征动态调整</li>
+                <li>在过滤精度和存储效率间找到最佳平衡点</li>
+                <li>大多数情况下无需手动调整</li>
+            </ul>
+        </div>
+    </div>
+</body>
+</html>
