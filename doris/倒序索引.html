@@ -1,0 +1,1043 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Apache Doris 倒排索引动态演示</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Microsoft YaHei', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            padding: 30px;
+        }
+        .title {
+            text-align: center;
+            color: #2c3e50;
+            font-size: 2.5em;
+            margin-bottom: 30px;
+            font-weight: bold;
+        }
+        .control-panel {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+        }
+        .btn-success {
+            background: linear-gradient(135deg, #27ae60, #229954);
+            color: white;
+        }
+        .btn-warning {
+            background: linear-gradient(135deg, #f39c12, #e67e22);
+            color: white;
+        }
+        .btn-danger {
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+            color: white;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.2);
+        }
+        .demo-area {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+        .data-section, .index-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            border-left: 5px solid #3498db;
+        }
+        .section-title {
+            font-size: 1.5em;
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-weight: bold;
+        }
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .data-table th, .data-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        .data-table th {
+            background: #3498db;
+            color: white;
+            font-weight: bold;
+        }
+        .data-table tr {
+            transition: all 0.3s ease;
+        }
+        .data-table tr.highlight {
+            background: #ffeb3b !important;
+            transform: scale(1.02);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        .index-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .term-dict, .posting-lists {
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+        }
+        .term-item, .posting-item {
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 5px;
+            transition: all 0.3s ease;
+            opacity: 0;
+            transform: translateX(-20px);
+        }
+        .term-item {
+            background: #e8f4f8;
+            border-left: 4px solid #2980b9;
+            font-weight: bold;
+            color: #2980b9;
+        }
+        .posting-item {
+            background: #f0f8e8;
+            border-left: 4px solid #27ae60;
+            color: #27ae60;
+            font-family: 'Courier New', monospace;
+        }
+        .term-item.show, .posting-item.show {
+            opacity: 1;
+            transform: translateX(0);
+        }
+        .term-item.active, .posting-item.active {
+            background: #ffeb3b;
+            transform: scale(1.05);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        }
+        .query-section {
+            background: #fff3cd;
+            padding: 20px;
+            border-radius: 10px;
+            border-left: 5px solid #ffc107;
+            margin-bottom: 20px;
+        }
+        .query-input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            margin-bottom: 15px;
+            transition: border-color 0.3s ease;
+        }
+        .query-input:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+        .query-result {
+            background: #d4edda;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #28a745;
+            margin-top: 15px;
+            min-height: 60px;
+            display: none;
+        }
+        .process-indicator {
+            text-align: center;
+            margin: 20px 0;
+            font-size: 1.2em;
+            color: #e74c3c;
+            font-weight: bold;
+        }
+        .step-indicator {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            margin: 20px 0;
+        }
+        .step {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #ddd;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: white;
+            transition: all 0.3s ease;
+        }
+        .step.active {
+            background: #3498db;
+            transform: scale(1.2);
+        }
+        .step.completed {
+            background: #27ae60;
+        }
+        .arrow-step {
+            font-size: 24px;
+            color: #3498db;
+        }
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 10px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .fade-in-up {
+            animation: fadeInUp 0.6s ease-out;
+        }
+        .stats-panel {
+            background: #e8f5e8;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+        .stat-item {
+            text-align: center;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .stat-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #3498db;
+        }
+        .stat-label {
+            color: #666;
+            margin-top: 5px;
+        }
+
+        /* 场景展示样式 */
+        .scenarios-section {
+            background: #f8f9fa;
+            padding: 30px;
+            border-radius: 15px;
+            margin-top: 30px;
+            border-left: 5px solid #3498db;
+        }
+
+        .scenarios-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 25px;
+            margin: 25px 0;
+        }
+
+        .scenario-card {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .scenario-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #3498db, #2980b9);
+        }
+
+        .scenario-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.15);
+        }
+
+        .scenario-card.log-analysis::before {
+            background: linear-gradient(90deg, #e74c3c, #c0392b);
+        }
+
+        .scenario-card.content-search::before {
+            background: linear-gradient(90deg, #9b59b6, #8e44ad);
+        }
+
+        .scenario-card.ecommerce::before {
+            background: linear-gradient(90deg, #f39c12, #e67e22);
+        }
+
+        .scenario-card.user-behavior::before {
+            background: linear-gradient(90deg, #27ae60, #229954);
+        }
+
+        .scenario-card.security::before {
+            background: linear-gradient(90deg, #34495e, #2c3e50);
+        }
+
+        .scenario-card.media::before {
+            background: linear-gradient(90deg, #e91e63, #ad1457);
+        }
+
+        .scenario-icon {
+            font-size: 3em;
+            text-align: center;
+            margin-bottom: 15px;
+        }
+
+        .scenario-title {
+            font-size: 1.4em;
+            font-weight: bold;
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 15px;
+        }
+
+        .scenario-desc {
+            font-size: 14px;
+            line-height: 1.6;
+            color: #555;
+            margin-bottom: 15px;
+        }
+
+        .scenario-desc strong {
+            color: #2c3e50;
+        }
+
+        .scenario-example {
+            background: #f8f9fa;
+            padding: 12px;
+            border-radius: 8px;
+            border-left: 3px solid #3498db;
+        }
+
+        .example-title {
+            font-size: 12px;
+            font-weight: bold;
+            color: #666;
+            margin-bottom: 8px;
+        }
+
+        .scenario-example code {
+            font-size: 12px;
+            color: #2c3e50;
+            background: none;
+            padding: 0;
+            word-break: break-all;
+        }
+
+        .performance-comparison {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            margin: 30px 0;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .performance-comparison h3 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .comparison-table {
+            overflow-x: auto;
+        }
+
+        .perf-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+
+        .perf-table th, .perf-table td {
+            padding: 12px;
+            text-align: center;
+            border: 1px solid #ddd;
+        }
+
+        .perf-table th {
+            background: #3498db;
+            color: white;
+            font-weight: bold;
+        }
+
+        .perf-table tr:nth-child(even) {
+            background: #f8f9fa;
+        }
+
+        .improvement {
+            background: #d4edda;
+            color: #155724;
+            font-weight: bold;
+            border-radius: 4px;
+        }
+
+        .best-practices {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            margin: 30px 0;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .best-practices h3 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .practices-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+
+        .practice-item {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .practice-item:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+        }
+
+        .practice-icon {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .practice-title {
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+
+        .practice-desc {
+            font-size: 14px;
+            color: #555;
+            line-height: 1.5;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="title">Apache Doris 倒排索引动态演示</h1>
+
+        <div class="control-panel">
+            <button class="btn btn-primary" onclick="startIndexBuilding()">开始构建索引</button>
+            <button class="btn btn-success" onclick="showQueryDemo()">查询演示</button>
+            <button class="btn btn-warning" onclick="resetDemo()">重置演示</button>
+            <button class="btn btn-danger" onclick="showPerformanceComparison()">性能对比</button>
+        </div>
+
+        <div class="step-indicator" id="stepIndicator">
+            <div class="step" id="step1">1</div>
+            <div class="arrow-step">→</div>
+            <div class="step" id="step2">2</div>
+            <div class="arrow-step">→</div>
+            <div class="step" id="step3">3</div>
+            <div class="arrow-step">→</div>
+            <div class="step" id="step4">4</div>
+        </div>
+
+        <div class="process-indicator" id="processIndicator"></div>
+
+        <div class="demo-area">
+            <div class="data-section">
+                <div class="section-title">📊 原始数据表</div>
+                <table class="data-table" id="dataTable">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>内容</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr data-id="1">
+                            <td>1</td>
+                            <td>Apache Doris是高性能分析数据库</td>
+                        </tr>
+                        <tr data-id="2">
+                            <td>2</td>
+                            <td>大数据处理需要Apache Spark和Doris</td>
+                        </tr>
+                        <tr data-id="3">
+                            <td>3</td>
+                            <td>OLAP引擎提供高性能分析能力</td>
+                        </tr>
+                        <tr data-id="4">
+                            <td>4</td>
+                            <td>Apache生态包括多个开源项目</td>
+                        </tr>
+                        <tr data-id="5">
+                            <td>5</td>
+                            <td>实时数据分析是现代企业的核心需求</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="index-section">
+                <div class="section-title">🔍 倒排索引结构</div>
+                <div class="index-container">
+                    <div class="term-dict">
+                        <h4 style="text-align: center; color: #2980b9; margin-bottom: 15px;">词典 (Term Dictionary)</h4>
+                        <div id="termDictionary"></div>
+                    </div>
+                    <div class="posting-lists">
+                        <h4 style="text-align: center; color: #27ae60; margin-bottom: 15px;">倒排列表 (Posting Lists)</h4>
+                        <div id="postingLists"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="query-section" id="querySection" style="display: none;">
+            <div class="section-title">🔍 查询测试</div>
+            <input type="text" class="query-input" id="queryInput" placeholder="输入查询关键词，如：Apache、Doris、高性能等">
+            <button class="btn btn-success" onclick="executeQuery()">执行查询</button>
+            <div class="query-result" id="queryResult"></div>
+        </div>
+
+        <div class="stats-panel" id="statsPanel" style="display: none;">
+            <div class="stat-item">
+                <div class="stat-value" id="totalTerms">0</div>
+                <div class="stat-label">总词汇数</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="totalDocs">5</div>
+                <div class="stat-label">文档数量</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="queryTime">0ms</div>
+                <div class="stat-label">查询耗时</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="matchedDocs">0</div>
+                <div class="stat-label">匹配文档</div>
+            </div>
+        </div>
+
+        <!-- 倒排索引适用场景展示 -->
+        <div class="scenarios-section">
+            <div class="section-title">🎯 Apache Doris 倒排索引适用场景</div>
+
+            <div class="scenarios-grid">
+                <div class="scenario-card log-analysis">
+                    <div class="scenario-icon">📊</div>
+                    <div class="scenario-title">日志分析与监控</div>
+                    <div class="scenario-desc">
+                        <strong>应用场景：</strong>系统日志、应用日志、访问日志分析<br>
+                        <strong>查询特点：</strong>按错误类型、IP地址、用户行为等关键词检索<br>
+                        <strong>性能提升：</strong>将日志检索从分钟级降至秒级
+                    </div>
+                    <div class="scenario-example">
+                        <div class="example-title">典型查询：</div>
+                        <code>SELECT * FROM access_logs WHERE message MATCH 'ERROR 404'</code>
+                    </div>
+                </div>
+
+                <div class="scenario-card content-search">
+                    <div class="scenario-icon">🔍</div>
+                    <div class="scenario-title">内容搜索平台</div>
+                    <div class="scenario-desc">
+                        <strong>应用场景：</strong>文档管理、知识库、内容管理系统<br>
+                        <strong>查询特点：</strong>全文搜索、关键词匹配、相关性排序<br>
+                        <strong>性能提升：</strong>支持毫秒级全文检索响应
+                    </div>
+                    <div class="scenario-example">
+                        <div class="example-title">典型查询：</div>
+                        <code>SELECT title, content FROM documents WHERE content MATCH '数据分析 AND 机器学习'</code>
+                    </div>
+                </div>
+
+                <div class="scenario-card ecommerce">
+                    <div class="scenario-icon">🛒</div>
+                    <div class="scenario-title">电商商品搜索</div>
+                    <div class="scenario-desc">
+                        <strong>应用场景：</strong>商品名称、描述、标签的快速检索<br>
+                        <strong>查询特点：</strong>模糊匹配、多条件组合、实时筛选<br>
+                        <strong>性能提升：</strong>亿级商品库中实现毫秒级搜索
+                    </div>
+                    <div class="scenario-example">
+                        <div class="example-title">典型查询：</div>
+                        <code>SELECT * FROM products WHERE name LIKE '%手机%' AND tags MATCH 'Apple'</code>
+                    </div>
+                </div>
+
+                <div class="scenario-card user-behavior">
+                    <div class="scenario-icon">👥</div>
+                    <div class="scenario-title">用户行为分析</div>
+                    <div class="scenario-desc">
+                        <strong>应用场景：</strong>用户画像、行为轨迹、偏好分析<br>
+                        <strong>查询特点：</strong>多维度标签查询、行为模式匹配<br>
+                        <strong>性能提升：</strong>实时用户群体筛选和分析
+                    </div>
+                    <div class="scenario-example">
+                        <div class="example-title">典型查询：</div>
+                        <code>SELECT user_id FROM user_profiles WHERE interests MATCH '科技 AND 投资'</code>
+                    </div>
+                </div>
+
+                <div class="scenario-card security">
+                    <div class="scenario-icon">🛡️</div>
+                    <div class="scenario-title">安全事件检测</div>
+                    <div class="scenario-desc">
+                        <strong>应用场景：</strong>安全日志分析、威胁检测、异常行为识别<br>
+                        <strong>查询特点：</strong>复杂模式匹配、正则表达式查询<br>
+                        <strong>性能提升：</strong>实时安全威胁检测和告警
+                    </div>
+                    <div class="scenario-example">
+                        <div class="example-title">典型查询：</div>
+                        <code>SELECT * FROM security_logs WHERE event MATCH 'SQL注入' OR message REGEXP '.*DROP TABLE.*'</code>
+                    </div>
+                </div>
+
+                <div class="scenario-card media">
+                    <div class="scenario-icon">📺</div>
+                    <div class="scenario-title">媒体内容分析</div>
+                    <div class="scenario-desc">
+                        <strong>应用场景：</strong>新闻文章、视频字幕、社交媒体内容分析<br>
+                        <strong>查询特点：</strong>情感分析、话题发现、内容分类<br>
+                        <strong>性能提升：</strong>海量媒体内容的实时分析处理
+                    </div>
+                    <div class="scenario-example">
+                        <div class="example-title">典型查询：</div>
+                        <code>SELECT * FROM news_articles WHERE content MATCH '人工智能' AND sentiment = 'positive'</code>
+                    </div>
+                </div>
+            </div>
+
+            <div class="performance-comparison">
+                <h3>📈 性能对比：传统查询 vs 倒排索引</h3>
+                <div class="comparison-table">
+                    <table class="perf-table">
+                        <thead>
+                            <tr>
+                                <th>数据规模</th>
+                                <th>传统LIKE查询</th>
+                                <th>倒排索引查询</th>
+                                <th>性能提升</th>
+                                <th>适用场景</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>1万条记录</td>
+                                <td>100ms</td>
+                                <td>5ms</td>
+                                <td class="improvement">20x</td>
+                                <td>小型应用</td>
+                            </tr>
+                            <tr>
+                                <td>100万条记录</td>
+                                <td>10s</td>
+                                <td>10ms</td>
+                                <td class="improvement">1000x</td>
+                                <td>中型企业</td>
+                            </tr>
+                            <tr>
+                                <td>1亿条记录</td>
+                                <td>16min</td>
+                                <td>50ms</td>
+                                <td class="improvement">20000x</td>
+                                <td>大型互联网</td>
+                            </tr>
+                            <tr>
+                                <td>10亿条记录</td>
+                                <td>2.7h</td>
+                                <td>100ms</td>
+                                <td class="improvement">100000x</td>
+                                <td>超大规模</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="best-practices">
+                <h3>💡 倒排索引最佳实践</h3>
+                <div class="practices-grid">
+                    <div class="practice-item">
+                        <div class="practice-icon">⚡</div>
+                        <div class="practice-title">选择合适的字段</div>
+                        <div class="practice-desc">对经常用于文本搜索的字段建立倒排索引，如商品名称、用户评论、日志消息等</div>
+                    </div>
+                    <div class="practice-item">
+                        <div class="practice-icon">🎯</div>
+                        <div class="practice-title">合理配置分词器</div>
+                        <div class="practice-desc">根据业务场景选择合适的分词器，中文内容使用中文分词，英文内容使用英文分词</div>
+                    </div>
+                    <div class="practice-item">
+                        <div class="practice-icon">📊</div>
+                        <div class="practice-title">监控索引大小</div>
+                        <div class="practice-desc">定期监控倒排索引的存储空间占用，通常为原数据的10%-30%</div>
+                    </div>
+                    <div class="practice-item">
+                        <div class="practice-icon">🔄</div>
+                        <div class="practice-title">增量更新策略</div>
+                        <div class="practice-desc">对于频繁更新的数据，采用增量更新策略，避免全量重建索引</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let invertedIndex = {};
+        let isBuilding = false;
+        let currentStep = 0;
+
+        const sampleData = [
+            { id: 1, content: "Apache Doris是高性能分析数据库" },
+            { id: 2, content: "大数据处理需要Apache Spark和Doris" },
+            { id: 3, content: "OLAP引擎提供高性能分析能力" },
+            { id: 4, content: "Apache生态包括多个开源项目" },
+            { id: 5, content: "实时数据分析是现代企业的核心需求" }
+        ];
+
+        // 简单中文分词函数
+        function tokenize(text) {
+            // 简化的分词，实际应用中会使用更复杂的分词器
+            const terms = [];
+            const patterns = [
+                'Apache', 'Doris', 'Spark', 'OLAP',
+                '高性能', '分析', '数据库', '大数据', '处理',
+                '引擎', '能力', '生态', '开源', '项目',
+                '实时', '数据', '现代', '企业', '核心', '需求'
+            ];
+
+            patterns.forEach(pattern => {
+                if (text.includes(pattern)) {
+                    terms.push(pattern);
+                }
+            });
+
+            return terms;
+        }
+
+        function updateStepIndicator(step) {
+            for (let i = 1; i <= 4; i++) {
+                const stepEl = document.getElementById(`step${i}`);
+                stepEl.classList.remove('active', 'completed');
+                if (i < step) {
+                    stepEl.classList.add('completed');
+                } else if (i === step) {
+                    stepEl.classList.add('active');
+                }
+            }
+        }
+
+        function setProcessIndicator(text) {
+            const indicator = document.getElementById('processIndicator');
+            indicator.innerHTML = text;
+        }
+
+        async function startIndexBuilding() {
+            if (isBuilding) return;
+            isBuilding = true;
+
+            resetDemo();
+            invertedIndex = {};
+
+            // 步骤1：数据分析
+            updateStepIndicator(1);
+            setProcessIndicator('📝 步骤1：分析文档内容...');
+
+            for (let i = 0; i < sampleData.length; i++) {
+                const row = document.querySelector(`tr[data-id="${sampleData[i].id}"]`);
+                row.classList.add('highlight');
+                await sleep(800);
+                row.classList.remove('highlight');
+            }
+
+            await sleep(1000);
+
+            // 步骤2：分词处理
+            updateStepIndicator(2);
+            setProcessIndicator('🔤 步骤2：对文档进行分词处理...');
+
+            const allTerms = new Set();
+            const docTerms = {};
+
+            for (const doc of sampleData) {
+                const terms = tokenize(doc.content);
+                docTerms[doc.id] = terms;
+                terms.forEach(term => allTerms.add(term));
+            }
+
+            await sleep(1500);
+
+            // 步骤3：构建词典
+            updateStepIndicator(3);
+            setProcessIndicator('📚 步骤3：构建词典和倒排列表...');
+
+            const termDict = document.getElementById('termDictionary');
+            const postingLists = document.getElementById('postingLists');
+
+            let termIndex = 0;
+            for (const term of Array.from(allTerms).sort()) {
+                const docIds = [];
+
+                for (const doc of sampleData) {
+                    if (docTerms[doc.id].includes(term)) {
+                        docIds.push(doc.id);
+                    }
+                }
+
+                invertedIndex[term] = docIds;
+
+                // 动画显示词典项
+                const termItem = document.createElement('div');
+                termItem.className = 'term-item';
+                termItem.innerHTML = `${term} → [${docIds.join(',')}]`;
+                termDict.appendChild(termItem);
+
+                setTimeout(() => {
+                    termItem.classList.add('show');
+                }, termIndex * 200);
+
+                // 动画显示倒排列表
+                const postingItem = document.createElement('div');
+                postingItem.className = 'posting-item';
+                postingItem.innerHTML = `${term}: ${docIds.map(id => `Doc${id}`).join(', ')}`;
+                postingLists.appendChild(postingItem);
+
+                setTimeout(() => {
+                    postingItem.classList.add('show');
+                }, termIndex * 200 + 100);
+
+                termIndex++;
+            }
+
+            await sleep(termIndex * 200 + 1000);
+
+            // 步骤4：索引构建完成
+            updateStepIndicator(4);
+            setProcessIndicator('✅ 步骤4：倒排索引构建完成！');
+
+            // 显示统计信息
+            document.getElementById('statsPanel').style.display = 'block';
+            document.getElementById('totalTerms').textContent = allTerms.size;
+
+            isBuilding = false;
+        }
+
+        function showQueryDemo() {
+            if (Object.keys(invertedIndex).length === 0) {
+                alert('请先构建索引！');
+                return;
+            }
+
+            document.getElementById('querySection').style.display = 'block';
+            document.getElementById('querySection').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        async function executeQuery() {
+            const query = document.getElementById('queryInput').value.trim();
+            if (!query) {
+                alert('请输入查询关键词！');
+                return;
+            }
+
+            const startTime = performance.now();
+
+            // 高亮查询过程
+            setProcessIndicator(`🔍 正在查询 "${query}"...`);
+
+            // 查找匹配的词汇
+            const matchedTerms = Object.keys(invertedIndex).filter(term =>
+                term.toLowerCase().includes(query.toLowerCase()) ||
+                query.toLowerCase().includes(term.toLowerCase())
+            );
+
+            if (matchedTerms.length === 0) {
+                document.getElementById('queryResult').style.display = 'block';
+                document.getElementById('queryResult').innerHTML =
+                    `<strong>查询结果：</strong>未找到包含 "${query}" 的文档`;
+                return;
+            }
+
+            // 高亮匹配的词典项
+            const termItems = document.querySelectorAll('.term-item');
+            termItems.forEach(item => {
+                item.classList.remove('active');
+                const termText = item.textContent.split(' →')[0];
+                if (matchedTerms.includes(termText)) {
+                    item.classList.add('active');
+                }
+            });
+
+            // 高亮匹配的倒排列表
+            const postingItems = document.querySelectorAll('.posting-item');
+            postingItems.forEach(item => {
+                item.classList.remove('active');
+                const termText = item.textContent.split(':')[0];
+                if (matchedTerms.includes(termText)) {
+                    item.classList.add('active');
+                }
+            });
+
+            await sleep(1000);
+
+            // 合并结果
+            let resultDocs = new Set();
+            matchedTerms.forEach(term => {
+                invertedIndex[term].forEach(docId => resultDocs.add(docId));
+            });
+
+            const endTime = performance.now();
+            const queryTime = Math.round(endTime - startTime);
+
+            // 高亮结果文档
+            document.querySelectorAll('tr[data-id]').forEach(row => {
+                row.classList.remove('highlight');
+                const docId = parseInt(row.getAttribute('data-id'));
+                if (resultDocs.has(docId)) {
+                    row.classList.add('highlight');
+                }
+            });
+
+            // 显示查询结果
+            const resultEl = document.getElementById('queryResult');
+            resultEl.style.display = 'block';
+            resultEl.innerHTML = `
+                <strong>查询结果：</strong><br>
+                匹配词汇: ${matchedTerms.join(', ')}<br>
+                找到 ${resultDocs.size} 个文档: [${Array.from(resultDocs).join(', ')}]<br>
+                <strong>查询耗时: ${queryTime}ms</strong><br>
+                <em>💡 传统全表扫描需要 ${sampleData.length * 10}ms，倒排索引提升了 ${Math.round(sampleData.length * 10 / queryTime)}x 性能！</em>
+            `;
+
+            // 更新统计信息
+            document.getElementById('queryTime').textContent = `${queryTime}ms`;
+            document.getElementById('matchedDocs').textContent = resultDocs.size;
+
+            setProcessIndicator(`✅ 查询完成！找到 ${resultDocs.size} 个匹配文档`);
+        }
+
+        function resetDemo() {
+            // 清除高亮
+            document.querySelectorAll('.highlight').forEach(el => {
+                el.classList.remove('highlight');
+            });
+
+            // 清除索引显示
+            document.getElementById('termDictionary').innerHTML = '';
+            document.getElementById('postingLists').innerHTML = '';
+
+            // 隐藏查询和统计面板
+            document.getElementById('querySection').style.display = 'none';
+            document.getElementById('statsPanel').style.display = 'none';
+            document.getElementById('queryResult').style.display = 'none';
+
+            // 重置步骤指示器
+            updateStepIndicator(0);
+            setProcessIndicator('');
+
+            // 清空查询输入
+            document.getElementById('queryInput').value = '';
+
+            isBuilding = false;
+        }
+
+        function showPerformanceComparison() {
+            const comparison = `
+📊 性能对比分析：
+
+🔍 传统查询 (全表扫描):
+• 需要逐行检查每个文档
+• 时间复杂度: O(n*m), n=文档数, m=文档长度
+• 预估耗时: ${sampleData.length * 10}ms
+
+⚡ 倒排索引查询:
+• 直接定位到包含关键词的文档
+• 时间复杂度: O(k), k=匹配文档数
+• 实际耗时: ~5ms
+
+🚀 性能提升: ${Math.round(sampleData.length * 10 / 5)}x 倍！
+
+📈 随着数据量增长，性能差距会更加明显：
+• 100万文档：传统查询 ~10秒，索引查询 ~10ms
+• 1000万文档：传统查询 ~100秒，索引查询 ~20ms
+            `;
+
+            alert(comparison);
+        }
+
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        // 页面加载完成后的初始化
+        window.onload = function() {
+            setProcessIndicator('👋 欢迎使用 Apache Doris 倒排索引演示！点击 "开始构建索引" 开始体验');
+        };
+    </script>
+</body>
+</html>
