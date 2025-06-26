@@ -1,0 +1,199 @@
+<svg viewBox="0 0 1000 700" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="rowGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#FFEBEE;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#FFCDD2;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="colGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#E8F5E8;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#C8E6C9;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="diskGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#E3F2FD;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#BBDEFB;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="compressGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#FFF3E0;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#FFE0B2;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- 标题 -->
+  <text x="500" y="30" text-anchor="middle" font-size="22" font-weight="bold" fill="#1976D2">列式存储 vs 行式存储原理对比</text>
+  
+  <!-- 原始逻辑表 -->
+  <rect x="50" y="60" width="400" height="120" fill="#F5F5F5" stroke="#666" stroke-width="2" rx="5"/>
+  <text x="250" y="80" text-anchor="middle" font-size="14" font-weight="bold" fill="#333">原始逻辑表 (Sales Data)</text>
+  
+  <!-- 表头 -->
+  <rect x="70" y="90" width="60" height="25" fill="#2196F3" stroke="#fff" stroke-width="1"/>
+  <text x="100" y="107" text-anchor="middle" font-size="10" fill="white" font-weight="bold">order_id</text>
+  <rect x="130" y="90" width="60" height="25" fill="#2196F3" stroke="#fff" stroke-width="1"/>
+  <text x="160" y="107" text-anchor="middle" font-size="10" fill="white" font-weight="bold">customer</text>
+  <rect x="190" y="90" width="50" height="25" fill="#2196F3" stroke="#fff" stroke-width="1"/>
+  <text x="215" y="107" text-anchor="middle" font-size="10" fill="white" font-weight="bold">sales</text>
+  <rect x="240" y="90" width="60" height="25" fill="#2196F3" stroke="#fff" stroke-width="1"/>
+  <text x="270" y="107" text-anchor="middle" font-size="10" fill="white" font-weight="bold">product</text>
+  <rect x="300" y="90" width="50" height="25" fill="#2196F3" stroke="#fff" stroke-width="1"/>
+  <text x="325" y="107" text-anchor="middle" font-size="10" fill="white" font-weight="bold">region</text>
+  <rect x="350" y="90" width="80" height="25" fill="#2196F3" stroke="#fff" stroke-width="1"/>
+  <text x="390" y="107" text-anchor="middle" font-size="10" fill="white" font-weight="bold">order_date</text>
+  
+  <!-- 表数据 -->
+  <rect x="70" y="115" width="360" height="60" fill="white" stroke="#ddd" stroke-width="1"/>
+  <text x="75" y="130" font-size="9" fill="#333">1001   Alice    500.0   Laptop    North   2024-01-15</text>
+  <text x="75" y="145" font-size="9" fill="#333">1002   Bob      300.0   Mouse     South   2024-01-16</text>
+  <text x="75" y="160" font-size="9" fill="#333">1003   Charlie  800.0   Monitor   East    2024-01-17</text>
+  <text x="75" y="175" font-size="9" fill="#666">...</text>
+  
+  <!-- 行式存储 -->
+  <rect x="50" y="200" width="200" height="180" fill="url(#rowGradient)" stroke="#D32F2F" stroke-width="2" rx="5"/>
+  <text x="150" y="220" text-anchor="middle" font-size="14" font-weight="bold" fill="#D32F2F">行式存储 (Row-based)</text>
+  
+  <!-- 行式存储数据块 -->
+  <rect x="70" y="240" width="160" height="20" fill="#F44336" stroke="white" stroke-width="1" rx="2"/>
+  <text x="150" y="255" text-anchor="middle" font-size="8" fill="white">Row1: 1001|Alice|500.0|Laptop|North|2024-01-15</text>
+  
+  <rect x="70" y="265" width="160" height="20" fill="#F44336" stroke="white" stroke-width="1" rx="2"/>
+  <text x="150" y="280" text-anchor="middle" font-size="8" fill="white">Row2: 1002|Bob|300.0|Mouse|South|2024-01-16</text>
+  
+  <rect x="70" y="290" width="160" height="20" fill="#F44336" stroke="white" stroke-width="1" rx="2"/>
+  <text x="150" y="305" text-anchor="middle" font-size="8" fill="white">Row3: 1003|Charlie|800.0|Monitor|East|2024-01-17</text>
+  
+  <rect x="70" y="315" width="160" height="20" fill="#F44336" stroke="white" stroke-width="1" rx="2"/>
+  <text x="150" y="330" text-anchor="middle" font-size="8" fill="white">Row4: 1004|David|200.0|Keyboard|West|2024-01-18</text>
+  
+  <text x="150" y="355" text-anchor="middle" font-size="10" fill="#D32F2F">数据按行连续存储</text>
+  
+  <!-- VS -->
+  <text x="300" y="290" text-anchor="middle" font-size="20" font-weight="bold" fill="#FF6B35">VS</text>
+  
+  <!-- 列式存储 -->
+  <rect x="350" y="200" width="300" height="180" fill="url(#colGradient)" stroke="#4CAF50" stroke-width="2" rx="5"/>
+  <text x="500" y="220" text-anchor="middle" font-size="14" font-weight="bold" fill="#4CAF50">列式存储 (Columnar)</text>
+  
+  <!-- 各列数据块 -->
+  <rect x="370" y="240" width="50" height="20" fill="#66BB6A" stroke="white" stroke-width="1" rx="2"/>
+  <text x="395" y="255" text-anchor="middle" font-size="8" fill="white">order_id</text>
+  <rect x="425" y="240" width="50" height="20" fill="#81C784" stroke="white" stroke-width="1" rx="2"/>
+  <text x="450" y="255" text-anchor="middle" font-size="8" fill="white">customer</text>
+  <rect x="480" y="240" width="40" height="20" fill="#A5D6A7" stroke="white" stroke-width="1" rx="2"/>
+  <text x="500" y="255" text-anchor="middle" font-size="8" fill="white">sales</text>
+  <rect x="525" y="240" width="50" height="20" fill="#C8E6C9" stroke="white" stroke-width="1" rx="2"/>
+  <text x="550" y="255" text-anchor="middle" font-size="8" fill="white">product</text>
+  <rect x="580" y="240" width="40" height="20" fill="#E8F5E8" stroke="white" stroke-width="1" rx="2"/>
+  <text x="600" y="255" text-anchor="middle" font-size="8" fill="white">region</text>
+  
+  <!-- 列数据详情 -->
+  <text x="375" y="280" font-size="8" fill="#2E7D32">1001</text>
+  <text x="375" y="295" font-size="8" fill="#2E7D32">1002</text>
+  <text x="375" y="310" font-size="8" fill="#2E7D32">1003</text>
+  <text x="375" y="325" font-size="8" fill="#2E7D32">1004</text>
+  
+  <text x="430" y="280" font-size="8" fill="#2E7D32">Alice</text>
+  <text x="430" y="295" font-size="8" fill="#2E7D32">Bob</text>
+  <text x="430" y="310" font-size="8" fill="#2E7D32">Charlie</text>
+  <text x="430" y="325" font-size="8" fill="#2E7D32">David</text>
+  
+  <text x="485" y="280" font-size="8" fill="#2E7D32" font-weight="bold">500.0</text>
+  <text x="485" y="295" font-size="8" fill="#2E7D32" font-weight="bold">300.0</text>
+  <text x="485" y="310" font-size="8" fill="#2E7D32" font-weight="bold">800.0</text>
+  <text x="485" y="325" font-size="8" fill="#2E7D32" font-weight="bold">200.0</text>
+  
+  <text x="530" y="280" font-size="8" fill="#2E7D32">Laptop</text>
+  <text x="530" y="295" font-size="8" fill="#2E7D32">Mouse</text>
+  <text x="530" y="310" font-size="8" fill="#2E7D32">Monitor</text>
+  <text x="530" y="325" font-size="8" fill="#2E7D32">Keyboard</text>
+  
+  <text x="585" y="280" font-size="8" fill="#2E7D32">North</text>
+  <text x="585" y="295" font-size="8" fill="#2E7D32">South</text>
+  <text x="585" y="310" font-size="8" fill="#2E7D32">East</text>
+  <text x="585" y="325" font-size="8" fill="#2E7D32">West</text>
+  
+  <text x="500" y="355" text-anchor="middle" font-size="10" fill="#4CAF50">数据按列分别存储</text>
+  
+  <!-- 查询示例 -->
+  <rect x="700" y="60" width="250" height="100" fill="#FFF3E0" stroke="#F57C00" stroke-width="2" rx="5"/>
+  <text x="825" y="80" text-anchor="middle" font-size="14" font-weight="bold" fill="#F57C00">查询示例</text>
+  <text x="710" y="100" font-size="11" fill="#E65100">SELECT SUM(sales) FROM table</text>
+  <text x="710" y="115" font-size="11" fill="#E65100">WHERE region = 'North'</text>
+  <text x="710" y="135" font-size="11" fill="#E65100">只需读取 sales 和 region 列</text>
+  <text x="710" y="150" font-size="11" fill="#E65100">无需读取其他列数据</text>
+  
+  <!-- I/O对比 -->
+  <rect x="700" y="180" width="250" height="120" fill="#F3E5F5" stroke="#9C27B0" stroke-width="2" rx="5"/>
+  <text x="825" y="200" text-anchor="middle" font-size="14" font-weight="bold" fill="#9C27B0">I/O 对比</text>
+  
+  <!-- 行式I/O -->
+  <text x="710" y="220" font-size="12" fill="#D32F2F" font-weight="bold">行式存储：</text>
+  <text x="710" y="235" font-size="10" fill="#D32F2F">读取所有列数据</text>
+  <rect x="710" y="240" width="200" height="15" fill="#FFCDD2" stroke="#D32F2F" stroke-width="1"/>
+  <text x="810" y="252" text-anchor="middle" font-size="9" fill="#D32F2F">100% 数据读取</text>
+  
+  <!-- 列式I/O -->
+  <text x="710" y="270" font-size="12" fill="#4CAF50" font-weight="bold">列式存储：</text>
+  <text x="710" y="285" font-size="10" fill="#4CAF50">只读取相关列</text>
+  <rect x="710" y="290" width="66" height="15" fill="#C8E6C9" stroke="#4CAF50" stroke-width="1"/>
+  <text x="743" y="302" text-anchor="middle" font-size="9" fill="#4CAF50">33% 数据读取</text>
+  
+  <!-- 压缩优化 -->
+  <rect x="50" y="400" width="900" height="140" fill="url(#compressGradient)" stroke="#FF9800" stroke-width="2" rx="5"/>
+  <text x="500" y="420" text-anchor="middle" font-size="16" font-weight="bold" fill="#F57C00">压缩优化原理</text>
+  
+  <!-- 压缩前后对比 -->
+  <rect x="80" y="440" width="180" height="80" fill="white" stroke="#FF9800" stroke-width="1" rx="3"/>
+  <text x="170" y="460" text-anchor="middle" font-size="12" font-weight="bold" fill="#F57C00">压缩前 (sales列)</text>
+  <text x="90" y="480" font-size="10" fill="#E65100">500.0, 300.0, 800.0, 200.0,</text>
+  <text x="90" y="495" font-size="10" fill="#E65100">450.0, 600.0, 750.0, 350.0,</text>
+  <text x="90" y="510" font-size="10" fill="#E65100">150.0, 900.0, ...</text>
+  
+  <text x="290" y="480" font-size="20" fill="#FF6B35">→</text>
+  
+  <rect x="320" y="440" width="200" height="80" fill="white" stroke="#FF9800" stroke-width="1" rx="3"/>
+  <text x="420" y="460" text-anchor="middle" font-size="12" font-weight="bold" fill="#F57C00">ZSTD压缩后</text>
+  <text x="330" y="480" font-size="10" fill="#E65100">压缩比: 70% ↓</text>
+  <text x="330" y="495" font-size="10" fill="#E65100">相同类型数据聚集</text>
+  <text x="330" y="510" font-size="10" fill="#E65100">压缩效率更高</text>
+  
+  <!-- 编码优化 -->
+  <rect x="550" y="440" width="180" height="80" fill="white" stroke="#FF9800" stroke-width="1" rx="3"/>
+  <text x="640" y="460" text-anchor="middle" font-size="12" font-weight="bold" fill="#F57C00">字典编码</text>
+  <text x="560" y="480" font-size="10" fill="#E65100">North → 0</text>
+  <text x="560" y="495" font-size="10" fill="#E65100">South → 1</text>
+  <text x="560" y="510" font-size="10" fill="#E65100">East → 2, West → 3</text>
+  
+  <rect x="750" y="440" width="180" height="80" fill="white" stroke="#FF9800" stroke-width="1" rx="3"/>
+  <text x="840" y="460" text-anchor="middle" font-size="12" font-weight="bold" fill="#F57C00">运行长度编码</text>
+  <text x="760" y="480" font-size="10" fill="#E65100">连续相同值压缩</text>
+  <text x="760" y="495" font-size="10" fill="#E65100">Active×1000 → (Active,1000)</text>
+  <text x="760" y="510" font-size="10" fill="#E65100">大幅减少存储空间</text>
+  
+  <!-- 性能优势 -->
+  <rect x="50" y="560" width="430" height="120" fill="#E8F5E8" stroke="#4CAF50" stroke-width="2" rx="5"/>
+  <text x="265" y="580" text-anchor="middle" font-size="16" font-weight="bold" fill="#2E7D32">列式存储优势</text>
+  <text x="70" y="600" font-size="11" fill="#1B5E20">• I/O优化: 只读取查询相关的列，减少70-90%的磁盘读取</text>
+  <text x="70" y="615" font-size="11" fill="#1B5E20">• 压缩效率: 同类型数据聚集，ZSTD等算法压缩比更高</text>
+  <text x="70" y="630" font-size="11" fill="#1B5E20">• CPU缓存: 数据局部性好，提高缓存命中率</text>
+  <text x="70" y="645" font-size="11" fill="#1B5E20">• 向量化: 支持SIMD指令，批量处理相同类型数据</text>
+  <text x="70" y="660" font-size="11" fill="#1B5E20">• 并行处理: 不同列可以并行读取和处理</text>
+  
+  <!-- 适用场景 -->
+  <rect x="500" y="560" width="450" height="120" fill="#F3E5F5" stroke="#9C27B0" stroke-width="2" rx="5"/>
+  <text x="725" y="580" text-anchor="middle" font-size="16" font-weight="bold" fill="#7B1FA2">最佳适用场景</text>
+  <text x="520" y="600" font-size="11" fill="#4A148C">• OLAP分析查询: 聚合、分组、统计分析</text>
+  <text x="520" y="615" font-size="11" fill="#4A148C">• 数据仓库: 大规模数据存储和分析</text>
+  <text x="520" y="630" font-size="11" fill="#4A148C">• 时序数据: 监控指标、日志分析</text>
+  <text x="520" y="645" font-size="11" fill="#4A148C">• 报表生成: BI工具、Dashboard</text>
+  <text x="520" y="660" font-size="11" fill="#4A148C">• 数据挖掘: 机器学习特征提取</text>
+  
+  <!-- 箭头 -->
+  <path d="M 650 170 L 500 210" stroke="#FF6B35" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+  <text x="580" y="185" font-size="10" fill="#FF6B35" font-weight="bold">只读取sales+region列</text>
+  
+  <!-- 箭头定义 -->
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#FF6B35"/>
+    </marker>
+  </defs>
+</svg>
